@@ -65,16 +65,6 @@ class YToolsAlignH(bpy.types.Operator):
         align_to_active(self, context, Y_AXIS_INDEX)
         return {'FINISHED'}
 
-class YToolsAlignH(bpy.types.Operator):
-    bl_idname = "mesh.ytools_align_horizontal"
-    bl_label = "Align To Active Horizontally (On Both X and Y Axis)"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        align_to_active(self, context, X_AXIS_INDEX)
-        align_to_active(self, context, Y_AXIS_INDEX)
-        return {'FINISHED'}
-
 class AlignViewToFace(bpy.types.Operator):
     bl_idname = "view3d.align_view_to_active_face_normal"
     bl_label = "Align 3d View To Active Face Normal"
