@@ -65,12 +65,14 @@ class YToolsAlignH(bpy.types.Operator):
         align_to_active(self, context, Y_AXIS_INDEX)
         return {'FINISHED'}
 
-class AlignViewToFace(bpy.types.Operator):
+class YToolsAlignViewToFace(bpy.types.Operator):
     bl_idname = "view3d.align_view_to_active_face_normal"
     bl_label = "Align 3d View To Active Face Normal"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
+        # print(type(context.space_data.region_3d.perspective_matrix))
+        align_view_to_face(self, context)
         return {'FINISHED'}
     
 # ================================================== 
@@ -90,6 +92,27 @@ if __name__ == "__main__":
 # ================================================== 
 # Functions
 # ==================================================
+
+def align_view_to_face(operator, context):
+    mode = context.active_object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    try:
+        region = context.space_data.region_3d
+        matrix = context.space_data.region_3d.view_matrix
+        rot = context.space_data.region_3d.view_rotation
+        face = context.active_object.data.polygons.active
+        normal = context.active_object.data.polygons[face].normal.copy()
+    except AttributeError:
+        operator.report({'ERROR'}, 'Attribute Error')
+        bpy.ops.object.mode_set(mode=mode)
+        return
+
+    normal = -normal
+    quat = normal.to_track_quat('-Z', 'Y')
+    context.space_data.region_3d.view_rotation = quat
+    bpy.ops.object.mode_set(mode=mode)
+
 
 def align_to_active(operator, context, axis_index):
     mode = context.active_object.mode
@@ -149,16 +172,19 @@ def find_selected_vertices(context):
     return [v for v in context.active_object.data.vertices if v.select]
 
 def get_selected_face_normal(context):
+    context.scene.update()
+    print(context.object.data.polygons.active)
     bm = bmesh.new()
     bm.from_mesh(context.object.data)
+
+    bm.normal_update()
 
     if bm.select_history:
         face = bm.select_history[-1]
         if isinstance(face, bmesh.types.BMFace):
+            result = face.normal.copy()
             bm.free()
-            return face.normal
+            return result
 
     bm.free()
     return None
-
-# def align_edit_camera_to_normal(context):
