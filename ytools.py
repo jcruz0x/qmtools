@@ -5,6 +5,7 @@
 import bpy
 import bmesh
 import math
+import mathutils
 
 # ================================================== 
 # bl_info
@@ -54,6 +55,34 @@ class YToolsAlignZ(bpy.types.Operator):
         align_to_active(self, context, Z_AXIS_INDEX)
         return {'FINISHED'}
 
+class YToolsAlignH(bpy.types.Operator):
+    bl_idname = "mesh.ytools_align_horizontal"
+    bl_label = "Align To Active Horizontally (On Both X and Y Axis)"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        align_to_active(self, context, X_AXIS_INDEX)
+        align_to_active(self, context, Y_AXIS_INDEX)
+        return {'FINISHED'}
+
+class YToolsAlignH(bpy.types.Operator):
+    bl_idname = "mesh.ytools_align_horizontal"
+    bl_label = "Align To Active Horizontally (On Both X and Y Axis)"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        align_to_active(self, context, X_AXIS_INDEX)
+        align_to_active(self, context, Y_AXIS_INDEX)
+        return {'FINISHED'}
+
+class AlignViewToFace(bpy.types.Operator):
+    bl_idname = "view3d.align_view_to_active_face_normal"
+    bl_label = "Align 3d View To Active Face Normal"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        return {'FINISHED'}
+    
 # ================================================== 
 # Registration
 # ================================================== 
@@ -70,7 +99,7 @@ if __name__ == "__main__":
 
 # ================================================== 
 # Functions
-# ================================================== 
+# ==================================================
 
 def align_to_active(operator, context, axis_index):
     mode = context.active_object.mode
@@ -82,10 +111,10 @@ def align_to_active(operator, context, axis_index):
         bpy.ops.object.mode_set(mode=mode)
         return
 
-    snap_target = snap_target_from_active_vertex(context, axis_index)
-    if snap_target == None && 
+    snap_target = get_snap_target(context, axis_index)
+
     if snap_target == None:
-        # operator.report({'ERROR'}, 'No vertex selected to snap to.')
+        # operator.report({'ERROR'}, 'Nothing active to snap to.')
         bpy.ops.object.mode_set(mode=mode)
         return
 
@@ -94,20 +123,52 @@ def align_to_active(operator, context, axis_index):
 
     bpy.ops.object.mode_set(mode=mode)
 
-def snap_target_from_active_vertex(context, axis_index):
+def get_snap_target(context, axis_index):
     bm = bmesh.new()
     bm.from_mesh(context.object.data)
     # bm = bmesh.from_edit_mesh(context.object.data) 
 
     snap_target = None
     
-    if bm.select_history:
-        vert = bm.select_history[-1]
-        if isinstance(vert, bmesh.types.BMVert):
-            snap_target = vert.co[axis_index]
+    if not bm.select_history:
+        bm.free()
+        return None
+
+    vert = bm.select_history[-1]
+    if isinstance(vert, bmesh.types.BMVert):
+        snap_target = vert.co[axis_index]
+
+    if snap_target == None:
+        face = bm.select_history[-1]
+        if isinstance(face, bmesh.types.BMFace):
+            center = face.calc_center_median()
+            snap_target = center[axis_index]
+
+    if snap_target == None:
+        edge = bm.select_history[-1]
+        if isinstance(edge, bmesh.types.BMEdge):
+            pos1 = edge.verts[0].co
+            pos2 = edge.verts[1].co
+            midpoint = pos1.lerp(pos2, 0.5)
+            snap_target = midpoint[axis_index]
 
     bm.free()
     return snap_target
 
 def find_selected_vertices(context):
     return [v for v in context.active_object.data.vertices if v.select]
+
+def get_selected_face_normal(context):
+    bm = bmesh.new()
+    bm.from_mesh(context.object.data)
+
+    if bm.select_history:
+        face = bm.select_history[-1]
+        if isinstance(face, bmesh.types.BMFace):
+            bm.free()
+            return face.normal
+
+    bm.free()
+    return None
+
+# def align_edit_camera_to_normal(context):
