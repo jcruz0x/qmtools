@@ -24,6 +24,8 @@ X_AXIS_INDEX = 0
 Y_AXIS_INDEX = 1
 Z_AXIS_INDEX = 2
 
+valid_texkeys = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
+
 cubemap_scales = {
     '1': 0.25,
     '2': 0.5, 
@@ -40,6 +42,13 @@ cubemap_scales = {
 }
 
 # ================================================== 
+# globals
+# ================================================== 
+
+addon_keymaps = []
+stored_images = {}
+
+# ================================================== 
 # Menu
 # ================================================== 
 
@@ -49,16 +58,17 @@ class YToolsMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+        layout.operator_context = 'INVOKE_DEFAULT'
 
         layout.operator("mesh.ytools_align_x")
         layout.operator("mesh.ytools_align_y")
         layout.operator("mesh.ytools_align_z")
-        layout.operator("mesh.ytools_align_h")
+        layout.operator("mesh.ytools_align_horizontal")
         layout.operator("view3d.align_view_to_active_face_normal")
         layout.operator("uv.quick_cubemap")
         layout.operator("uv.quick_cubemap_half")
         layout.operator("uv.quick_cubemap_modal")
-        layout.operator("mesh.split")
+        layout.operator("mesh.split", text="Rip Faces")
 
 # ================================================== 
 # Operators
@@ -93,7 +103,7 @@ class YToolsAlignZ(bpy.types.Operator):
 
 class YToolsAlignH(bpy.types.Operator):
     bl_idname = "mesh.ytools_align_horizontal"
-    bl_label = "Horizontal Align To Active"
+    bl_label = "Both X and Z Axis Align To Active   "
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -116,11 +126,11 @@ class YToolsQuickCubeMapModal(bpy.types.Operator):
     bl_label = "Cubeproject Modal"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def __init__(self):
-        print("Quick UVMapper Start")
+    # def __init__(self):
+    #     print("Quick UVMapper Start")
 
-    def __del__(self):
-        print("Quick UVMapper End")
+    # def __del__(self):
+    #     print("Quick UVMapper End")
 
     def modal(self, context, event):
         if event.unicode in cubemap_scales.keys():
@@ -133,7 +143,8 @@ class YToolsQuickCubeMapModal(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def invoke(self, context, event):
-        print(context.window_manager.modal_handler_add(self))
+        # print(context.window_manager.modal_handler_add(self))
+        context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
     
 class YToolsQuickCubeMap(bpy.types.Operator):
@@ -154,15 +165,46 @@ class YToolsQuickCubeMapHalf(bpy.types.Operator):
         bpy.ops.uv.cube_project(cube_size = 0.5)
         return {'FINISHED'}
 
+class YToolsQuickSimilarImage(bpy.types.Operator):
+    bl_idname = "mesh.quick_similar_image"
+    bl_label = "Quick Select Similar Image"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        bpy.ops.mesh.select_similar(type='IMAGE', threshold=0.01)
+        return {'FINISHED'}
+
+
 # ================================================== 
 # Registration
 # ================================================== 
 
 def register():
     bpy.utils.register_module(__name__)
-    bpy.ops.wm.call_menu(name=YToolsMenu.bl_idname)
+    # bpy.utils.register_class(YToolsMenu)
+    # bpy.ops.wm.call_menu(name=YToolsMenu.bl_idname)
+
+    kc = bpy.context.window_manager.keyconfigs.addon
+    km = kc.keymaps.new(name="Mesh")
+
+    kmi = km.keymap_items.new('wm.call_menu', 'Y', 'PRESS')
+    kmi.properties.name = YToolsMenu.bl_idname
+
+    km.keymap_items.new(YToolsAlignZ.bl_idname, 'Z', 'PRESS', ctrl=True, shift=True)
+    km.keymap_items.new(YToolsAlignX.bl_idname, 'X', 'PRESS', ctrl=True, shift=True)
+    km.keymap_items.new(YToolsAlignY.bl_idname, 'C', 'PRESS', ctrl=True, shift=True)
+    km.keymap_items.new(YToolsQuickCubeMap.bl_idname, 'Q', 'PRESS', ctrl=True, shift=True)
+    km.keymap_items.new(YToolsQuickCubeMapHalf.bl_idname, 'W', 'PRESS', ctrl=True, shift=True)
+    km.keymap_items.new(YToolsQuickSimilarImage.bl_idname, 'A', 'PRESS', ctrl=True, shift=True)
+
+    addon_keymaps.append(km)
 
 def unregister():
+    wm = bpy.context.window_manager
+    for km in addon_keymaps:
+        wm.keyconfigs.addon.keymaps.remove(km)
+    addon_keymaps.clear()
+
     bpy.utils.unregister_module(__name__)
 
 if __name__ == "__main__":
@@ -171,6 +213,8 @@ if __name__ == "__main__":
 # ================================================== 
 # Functions
 # ==================================================
+
+
 
 def align_view_to_face(operator, context):
     mode = context.active_object.mode
