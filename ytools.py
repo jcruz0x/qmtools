@@ -40,12 +40,33 @@ cubemap_scales = {
 }
 
 # ================================================== 
+# Menu
+# ================================================== 
+
+class YToolsMenu(bpy.types.Menu):
+    bl_label = "Y Tools Menu"
+    bl_idname = "view3d.ytools_menu"
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.operator("mesh.ytools_align_x")
+        layout.operator("mesh.ytools_align_y")
+        layout.operator("mesh.ytools_align_z")
+        layout.operator("mesh.ytools_align_h")
+        layout.operator("view3d.align_view_to_active_face_normal")
+        layout.operator("uv.quick_cubemap")
+        layout.operator("uv.quick_cubemap_half")
+        layout.operator("uv.quick_cubemap_modal")
+        layout.operator("mesh.split")
+
+# ================================================== 
 # Operators
 # ================================================== 
 
 class YToolsAlignX(bpy.types.Operator):
     bl_idname = "mesh.ytools_align_x"
-    bl_label = "Align To Active On X Axis"
+    bl_label = "X Axis Align To Active"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -54,7 +75,7 @@ class YToolsAlignX(bpy.types.Operator):
 
 class YToolsAlignY(bpy.types.Operator):
     bl_idname = "mesh.ytools_align_y"
-    bl_label = "Align To Active On Y Axis"
+    bl_label = "Y Axis Align To Active"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -63,7 +84,7 @@ class YToolsAlignY(bpy.types.Operator):
 
 class YToolsAlignZ(bpy.types.Operator):
     bl_idname = "mesh.ytools_align_z"
-    bl_label = "Align To Active On Z Axis"
+    bl_label = "Z Axis Align To Active"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -72,7 +93,7 @@ class YToolsAlignZ(bpy.types.Operator):
 
 class YToolsAlignH(bpy.types.Operator):
     bl_idname = "mesh.ytools_align_horizontal"
-    bl_label = "Align To Active Horizontally (On Both X and Y Axis)"
+    bl_label = "Horizontal Align To Active"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -82,7 +103,7 @@ class YToolsAlignH(bpy.types.Operator):
 
 class YToolsAlignViewToFace(bpy.types.Operator):
     bl_idname = "view3d.align_view_to_active_face_normal"
-    bl_label = "Align 3d View To Active Face Normal"
+    bl_label = "Face Normal Aligned 3D View"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -92,7 +113,7 @@ class YToolsAlignViewToFace(bpy.types.Operator):
 
 class YToolsQuickCubeMapModal(bpy.types.Operator):
     bl_idname = "uv.quick_cubemap_modal"
-    bl_label = "Quick Cubemap (Modal)"
+    bl_label = "Cubeproject Modal"
     bl_options = {'REGISTER', 'UNDO'}
 
     def __init__(self):
@@ -117,7 +138,7 @@ class YToolsQuickCubeMapModal(bpy.types.Operator):
     
 class YToolsQuickCubeMap(bpy.types.Operator):
     bl_idname = "uv.quick_cubemap"
-    bl_label = "Quick Cubemap" 
+    bl_label = "Unwrap Cubeproject" 
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -126,7 +147,7 @@ class YToolsQuickCubeMap(bpy.types.Operator):
 
 class YToolsQuickCubeMapHalf(bpy.types.Operator):
     bl_idname = "uv.quick_cubemap_half"
-    bl_label = "Quick Cubemap (Half Scale)"
+    bl_label = "Half Scale Cubeproject"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -139,6 +160,7 @@ class YToolsQuickCubeMapHalf(bpy.types.Operator):
 
 def register():
     bpy.utils.register_module(__name__)
+    bpy.ops.wm.call_menu(name=YToolsMenu.bl_idname)
 
 def unregister():
     bpy.utils.unregister_module(__name__)
