@@ -126,12 +126,6 @@ class YToolsQuickCubeMapModal(bpy.types.Operator):
     bl_label = "Cubeproject Modal"
     bl_options = {'REGISTER', 'UNDO'}
 
-    # def __init__(self):
-    #     print("Quick UVMapper Start")
-
-    # def __del__(self):
-    #     print("Quick UVMapper End")
-
     def modal(self, context, event):
         if event.unicode in cubemap_scales.keys():
             bpy.ops.uv.cube_project(cube_size = cubemap_scales[event.unicode])
@@ -143,7 +137,6 @@ class YToolsQuickCubeMapModal(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def invoke(self, context, event):
-        # print(context.window_manager.modal_handler_add(self))
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
     
@@ -174,6 +167,23 @@ class YToolsQuickSimilarImage(bpy.types.Operator):
         bpy.ops.mesh.select_similar(type='IMAGE', threshold=0.01)
         return {'FINISHED'}
 
+class YToolsPickImageModal(bpy.types.Operator):
+    bl_idname = "mesh.pick_image"
+    bl_label = "Pick And Store Image"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        stored_images[0] = get_active_face_image_name(self, context)
+        return {'FINISHED'}
+
+class YToolsAssignImageModal(bpy.types.Operator):
+    bl_idname = "mesh.assign_stored_image"
+    bl_label = "Texture Assign From Stored Image"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        assign_image_to_selected_faces_by_name(self, context, stored_images[0])
+        return {'FINISHED'}
 
 # ================================================== 
 # Registration
@@ -214,7 +224,40 @@ if __name__ == "__main__":
 # Functions
 # ==================================================
 
+def get_active_face_image_name(operator, context):
+    mode = context.active_object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
 
+    faceno = context.active_object.data.polygons.active
+    face = context.active_object.data.uv_textures.active.data[faceno]
+
+    print(face.image.name)
+
+    name = face.image.name
+
+    bpy.ops.object.mode_set(mode=mode)
+
+    return name
+
+def assign_image_to_selected_faces_by_name(operator, context, name):
+    mode = context.active_object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    for img in bpy.data.images:
+        if img.name == name:
+            image_to_assign = img
+            break
+    else:
+        return False
+
+    selected_faces = [f for f in context.active_object.data.polygons if f.select]
+
+    for face in selected_faces:
+      context.active_object.data.uv_textures.active.data[face.index].image = image_to_assign
+
+    bpy.ops.object.mode_set(mode=mode)
+
+    return True
 
 def align_view_to_face(operator, context):
     mode = context.active_object.mode
