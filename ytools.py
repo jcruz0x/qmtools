@@ -17,12 +17,27 @@ bl_info = {
 }
 
 # ================================================== 
-# constants
+# constants / data
 # ================================================== 
 
 X_AXIS_INDEX = 0
 Y_AXIS_INDEX = 1
 Z_AXIS_INDEX = 2
+
+cubemap_scales = {
+    '1': 0.25,
+    '2': 0.5, 
+    '3': 0.75, 
+    '4': 1.0, 
+    '5': 1.25, 
+    '6': 1.5, 
+    '7': 1.75, 
+    '8': 2.0, 
+    '9': 2.25, 
+    '0': 2.5,
+    'u': 1.0,
+    'i': 0.5,
+}
 
 # ================================================== 
 # Operators
@@ -74,7 +89,50 @@ class YToolsAlignViewToFace(bpy.types.Operator):
         # print(type(context.space_data.region_3d.perspective_matrix))
         align_view_to_face(self, context)
         return {'FINISHED'}
+
+class YToolsQuickCubeMapModal(bpy.types.Operator):
+    bl_idname = "uv.quick_cubemap_modal"
+    bl_label = "Quick Cubemap (Modal)"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def __init__(self):
+        print("Quick UVMapper Start")
+
+    def __del__(self):
+        print("Quick UVMapper End")
+
+    def modal(self, context, event):
+        if event.unicode in cubemap_scales.keys():
+            bpy.ops.uv.cube_project(cube_size = cubemap_scales[event.unicode])
+            return {'FINISHED'}
+
+        if event.type == 'ESC':
+            return {'CANCELLED'}
+
+        return {'RUNNING_MODAL'}
+
+    def invoke(self, context, event):
+        print(context.window_manager.modal_handler_add(self))
+        return {'RUNNING_MODAL'}
     
+class YToolsQuickCubeMap(bpy.types.Operator):
+    bl_idname = "uv.quick_cubemap"
+    bl_label = "Quick Cubemap" 
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        bpy.ops.uv.cube_project(cube_size = 1.0)
+        return {'FINISHED'}
+
+class YToolsQuickCubeMapHalf(bpy.types.Operator):
+    bl_idname = "uv.quick_cubemap_half"
+    bl_label = "Quick Cubemap (Half Scale)"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        bpy.ops.uv.cube_project(cube_size = 0.5)
+        return {'FINISHED'}
+
 # ================================================== 
 # Registration
 # ================================================== 
@@ -87,7 +145,6 @@ def unregister():
 
 if __name__ == "__main__":
     register()
-
 
 # ================================================== 
 # Functions
