@@ -63,6 +63,7 @@ class YToolsMenu(bpy.types.Menu):
         layout.operator("mesh.ytools_align_x")
         layout.operator("mesh.ytools_align_y")
         layout.operator("mesh.ytools_align_z")
+        layout.operator("mesh.smart_align_edges")
         layout.operator("mesh.ytools_align_horizontal")
         layout.operator("view3d.align_view_to_active_face_normal")
         layout.operator("uv.quick_cubemap")
@@ -149,7 +150,8 @@ class YToolsQuickSimilarImage(bpy.types.Operator):
     bl_label = "Quick Select Same Image"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
+    def execte(self, context):
+        #TODO: check if only face select mode is active (error if calling with type 'IMAGE' otherwise)
         bpy.ops.mesh.select_similar(type='IMAGE', threshold=0.01)
         return {'FINISHED'}
 
@@ -160,6 +162,15 @@ class YToolsSelectLinkedFaceSameImage(bpy.types.Operator):
 
     def execute(self, context):
         select_linked_with_same_image(self, context)
+        return {'FINISHED'}
+
+class YToolsSmartAlignEdges(bpy.types.Operator):
+    bl_idname = "mesh.smart_align_edges"
+    bl_label = "Edge Smart Align"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        smart_align_selected_edges(self, context)
         return {'FINISHED'}
 
 class YToolsToggleBackfaces(bpy.types.Operator):
@@ -292,6 +303,53 @@ if __name__ == "__main__":
 # Functions
 # ==================================================
 
+def smart_align_selected_edges(operator, context):
+    mode = context.active_object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    # bm = bmesh.new()
+    # bm.from_mesh(context.object.data) 
+
+    selected_edges = [e for e in context.active_object.data.edges if e.select]
+    vertices = context.active_object.data.vertices
+
+    for edge in selected_edges:
+        vertex1 = vertices[edge.vertices[0]] 
+        vertex2 = vertices[edge.vertices[1]] 
+
+        axis1, axis2 = get_short_axes(vertex1, vertex2)
+        midpoint = get_edge_midpoint(vertex1, vertex2)
+
+        vertex1.co[axis1] = midpoint[axis1]
+        vertex1.co[axis2] = midpoint[axis2]
+
+        vertex2.co[axis1] = midpoint[axis1]
+        vertex2.co[axis2] = midpoint[axis2]
+
+    # bm.free()
+    bpy.ops.object.mode_set(mode=mode)
+
+def get_short_axes(vertex1, vertex2):
+    x = abs(vertex1.co.x - vertex2.co.x)
+    y = abs(vertex1.co.y - vertex2.co.y)
+    z = abs(vertex1.co.z - vertex2.co.z)
+
+    longest = max([x, y, z])
+    if x == longest:
+        return (Y_AXIS_INDEX, Z_AXIS_INDEX)
+    elif y == longest:
+        return (X_AXIS_INDEX, Z_AXIS_INDEX)
+    else:
+        return (X_AXIS_INDEX, Y_AXIS_INDEX)
+
+def get_edge_midpoint(vertex1, vertex2):
+    x = (vertex1.co.x + vertex2.co.x) / 2
+    y = (vertex1.co.y + vertex2.co.y) / 2
+    z = (vertex1.co.z + vertex2.co.z) / 2
+
+    return mathutils.Vector((x, y, z))
+    
+
 def select_linked_with_same_image(operator, context):
 
     mode = context.active_object.mode
@@ -348,7 +406,7 @@ def get_active_face_image_name(operator, context):
     faceno = context.active_object.data.polygons.active
     face = context.active_object.data.uv_textures.active.data[faceno]
 
-    print(face.image.name)
+    # print(face.image.name)
 
     name = face.image.name
 
@@ -394,6 +452,7 @@ def align_view_to_face(operator, context):
     normal = -normal
     quat = normal.to_track_quat('-Z', 'Y')
     context.space_data.region_3d.view_rotation = quat
+
     bpy.ops.object.mode_set(mode=mode)
 
 
@@ -456,7 +515,7 @@ def find_selected_vertices(context):
 
 def get_selected_face_normal(context):
     context.scene.update()
-    print(context.object.data.polygons.active)
+    # print(context.object.data.polygons.active)
     bm = bmesh.new()
     bm.from_mesh(context.object.data)
 
