@@ -68,6 +68,11 @@ class YToolsMenu(bpy.types.Menu):
         layout.operator("uv.quick_cubemap")
         layout.operator("uv.quick_cubemap_half")
         layout.operator("uv.quick_cubemap_modal")
+        layout.operator("mesh.pick_image")
+        layout.operator("mesh.assign_stored_image")
+        layout.operator("mesh.linked_similar_image")
+        layout.operator("mesh.toggle_backfaces")
+        layout.operator("mesh.toggle_edge_length")
         layout.operator("mesh.split", text="Rip Faces")
 
 # ================================================== 
@@ -103,7 +108,7 @@ class YToolsAlignZ(bpy.types.Operator):
 
 class YToolsAlignH(bpy.types.Operator):
     bl_idname = "mesh.ytools_align_horizontal"
-    bl_label = "Both X and Z Axis Align To Active   "
+    bl_label = "Align Both X and Z Axis To Active"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -121,25 +126,6 @@ class YToolsAlignViewToFace(bpy.types.Operator):
         align_view_to_face(self, context)
         return {'FINISHED'}
 
-class YToolsQuickCubeMapModal(bpy.types.Operator):
-    bl_idname = "uv.quick_cubemap_modal"
-    bl_label = "Cubeproject Modal"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def modal(self, context, event):
-        if event.unicode in cubemap_scales.keys():
-            bpy.ops.uv.cube_project(cube_size = cubemap_scales[event.unicode])
-            return {'FINISHED'}
-
-        if event.type == 'ESC':
-            return {'CANCELLED'}
-
-        return {'RUNNING_MODAL'}
-
-    def invoke(self, context, event):
-        context.window_manager.modal_handler_add(self)
-        return {'RUNNING_MODAL'}
-    
 class YToolsQuickCubeMap(bpy.types.Operator):
     bl_idname = "uv.quick_cubemap"
     bl_label = "Unwrap Cubeproject" 
@@ -160,30 +146,111 @@ class YToolsQuickCubeMapHalf(bpy.types.Operator):
 
 class YToolsQuickSimilarImage(bpy.types.Operator):
     bl_idname = "mesh.quick_similar_image"
-    bl_label = "Quick Select Similar Image"
+    bl_label = "Quick Select Same Image"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         bpy.ops.mesh.select_similar(type='IMAGE', threshold=0.01)
         return {'FINISHED'}
 
+class YToolsSelectLinkedFaceSameImage(bpy.types.Operator):
+    bl_idname = "mesh.linked_similar_image"
+    bl_label = "Selected Linked Faces With Same Image"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        select_linked_with_same_image(self, context)
+        return {'FINISHED'}
+
+class YToolsToggleBackfaces(bpy.types.Operator):
+    bl_idname = "mesh.toggle_backfaces"
+    bl_label = "Backfaces Toggle"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        context.space_data.show_backface_culling ^= True
+        return {'FINISHED'}
+
+class YToolsToggleEdgeLength(bpy.types.Operator):
+    bl_idname = "mesh.toggle_edge_length"
+    bl_label = "Length Of Edges Toggle"
+    bl_options = {'REGISTER', 'UNDO'} 
+
+    def execute(self, context):
+        context.object.data.show_extra_edge_length ^= True
+        return {'FINISHED'}
+
+class YToolsQuickCubeMapModal(bpy.types.Operator):
+    bl_idname = "uv.quick_cubemap_modal"
+    bl_label = "Cubeproject Modal"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def modal(self, context, event):
+        context.area.header_text_set("CUBE PROJECTION: Select Cubemap Scale [1: 0.25]  [2: 0.5]  [3: 0.75]  [4: 1.0]  [5: 1.25]  [6: 1.5]  [7: 1.75]  [8: 2.0]  [9: 2.25]  [0: 2.5]")
+        if event.unicode in cubemap_scales.keys():
+            bpy.ops.uv.cube_project(cube_size = cubemap_scales[event.unicode])
+            context.area.header_text_set()
+            return {'FINISHED'}
+
+        if event.type == 'ESC':
+            context.area.header_text_set()
+            return {'CANCELLED'}
+
+        return {'RUNNING_MODAL'}
+
+    def invoke(self, context, event):
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
 class YToolsPickImageModal(bpy.types.Operator):
     bl_idname = "mesh.pick_image"
     bl_label = "Pick And Store Image"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
-        stored_images[0] = get_active_face_image_name(self, context)
-        return {'FINISHED'}
+    def modal(self, context, event):
+        context.area.header_text_set("PICK IMAGE: Select slot (0-9) to store image in.")
+        if event.unicode in valid_texkeys:
+            stored_images[event.unicode] = get_active_face_image_name(self, context)
+            context.area.header_text_set()
+            return {'FINISHED'}
+
+        if event.type == 'ESC':
+            context.area.header_text_set()
+            return {'CANCELLED'}
+
+        return {'RUNNING_MODAL'}
+
+    def invoke(self, context, event):
+        # stored_images[0] = get_active_face_image_name(self, context)
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
 
 class YToolsAssignImageModal(bpy.types.Operator):
     bl_idname = "mesh.assign_stored_image"
     bl_label = "Texture Assign From Stored Image"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
-        assign_image_to_selected_faces_by_name(self, context, stored_images[0])
-        return {'FINISHED'}
+    def modal(self, context, event):
+        context.area.header_text_set("ASSIGN IMAGE: Select slot (0-9) to assign image from")
+        if event.unicode in valid_texkeys:
+            if event.unicode in stored_images.keys():
+                assign_image_to_selected_faces_by_name(self, context, stored_images[event.unicode])
+                context.area.header_text_set()
+                return {'FINISHED'}
+            else:
+                context.area.header_text_set()
+                return {'CANCELLED'}
+
+        if event.type == 'ESC':
+            context.area.header_text_set()
+            return {'CANCELLED'}
+
+        return {'RUNNING_MODAL'}
+
+    def invoke(self, context, event):
+        # assign_image_to_selected_faces_by_name(self, context, stored_images[0])
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
 
 # ================================================== 
 # Registration
@@ -206,6 +273,7 @@ def register():
     km.keymap_items.new(YToolsQuickCubeMap.bl_idname, 'Q', 'PRESS', ctrl=True, shift=True)
     km.keymap_items.new(YToolsQuickCubeMapHalf.bl_idname, 'W', 'PRESS', ctrl=True, shift=True)
     km.keymap_items.new(YToolsQuickSimilarImage.bl_idname, 'A', 'PRESS', ctrl=True, shift=True)
+    km.keymap_items.new(YToolsSelectLinkedFaceSameImage.bl_idname, 'F', 'PRESS', ctrl=True, shift=True)
 
     addon_keymaps.append(km)
 
@@ -223,6 +291,55 @@ if __name__ == "__main__":
 # ================================================== 
 # Functions
 # ==================================================
+
+def select_linked_with_same_image(operator, context):
+
+    mode = context.active_object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    bm = bmesh.new()
+    bm.from_mesh(context.object.data) 
+
+    bm.faces.ensure_lookup_table()
+    tex_lay = bm.faces.layers.tex.active
+
+    face_list = [f for f in bm.faces if f.select]
+
+    if len(face_list) == 0:
+        # operator.report({'ERROR'}, 'No faces selected.')
+        bm.free()
+        bpy.ops.object.mode_set(mode=mode)
+        return
+
+    if bm.select_history:
+        elem = bm.select_history[-1]
+        active_face_index = elem.index if isinstance(elem, bmesh.types.BMFace) else face_list[0].index
+        active_image_name = bm.faces[active_face_index][tex_lay].image.name
+    else:
+        bpy.ops.object.mode_set(mode=mode)
+        bm.free()
+        return
+
+    final_selection = set()
+    while face_list:
+        new_faces = []
+        for face in face_list:
+            if face.index in final_selection:
+                continue
+            if face[tex_lay].image.name != active_image_name:
+                continue
+            final_selection.add(face.index) 
+            for edge in face.edges:
+               linked = edge.link_faces
+               for face in linked:
+                   new_faces.append(face)
+        face_list = new_faces if len(new_faces) > 0 else None 
+
+    for face_index in final_selection:
+        context.active_object.data.polygons[face_index].select = True
+
+    bpy.ops.object.mode_set(mode=mode)
+    bm.free()
 
 def get_active_face_image_name(operator, context):
     mode = context.active_object.mode
