@@ -12,8 +12,9 @@ import mathutils
 # ================================================== 
 
 bl_info = {
-    "name": "Y Tools",
+    "name": "Quick Map Tools",
     "category": "Mesh",
+    "author": "John Cruz"
 }
 
 # ================================================== 
@@ -41,6 +42,10 @@ cubemap_scales = {
     'i': 0.5,
 }
 
+cubemap_modal_help = "Select Cubeprojection Scale: "
+for k in cubemap_scales.keys():
+    cubemap_modal_help += " {} -> {},  ".format(k, cubemap_scales[k]) 
+
 # ================================================== 
 # globals
 # ================================================== 
@@ -52,67 +57,106 @@ stored_images = {}
 # Menu
 # ================================================== 
 
-class YToolsMenu(bpy.types.Menu):
-    bl_label = "Y Tools Menu"
-    bl_idname = "view3d.ytools_menu"
+class QMToolsMenu(bpy.types.Menu):
+    bl_label = "Quick Map Tools"
+    bl_idname = "view3d.qmtools_menu"
 
     def draw(self, context):
         layout = self.layout
         layout.operator_context = 'INVOKE_DEFAULT'
 
-        layout.operator("mesh.ytools_align_x")
-        layout.operator("mesh.ytools_align_y")
-        layout.operator("mesh.ytools_align_z")
-        layout.operator("mesh.smart_align_edges")
-        layout.operator("mesh.ytools_align_horizontal")
-        layout.operator("view3d.align_view_to_active_face_normal")
-        layout.operator("uv.quick_cubemap")
-        layout.operator("uv.quick_cubemap_half")
-        layout.operator("uv.quick_cubemap_modal")
-        layout.operator("mesh.minor_grid_snap")
-        layout.operator("mesh.grid_snap_axis")
-        layout.operator("mesh.grid_snap_axis_minor")
-        layout.operator("mesh.pick_image")
-        layout.operator("mesh.assign_stored_image")
-        layout.operator("mesh.linked_similar_image")    
-        layout.operator("mesh.toggle_backfaces")
-        layout.operator("mesh.toggle_edge_length")
-        layout.operator("mesh.split")   
+        layout.operator(
+            "mesh.qmtools_align_z",
+            text="Z Align to Active on Z Axis")
+        layout.operator(
+            "mesh.qmtools_align_x", 
+            text="X Align to Active on X Axis" )
+        layout.operator(
+            "mesh.qmtools_align_y",
+            text="Y Align to Active on Y Axis" )
+        layout.operator(
+            "mesh.qmtools_align_y",
+            text="C Align to Active on Y Axis" )
+        layout.operator(
+            "mesh.qmtools_smart_align_edges",
+            text="E Smart Align Edges" )
+        layout.operator(
+            "mesh.qmtools_align_horizontal",
+            text="H Align to Active on Both Horizontal Axes" )
+        layout.operator(
+            "view3d.qmtools_align_view_to_normal",
+            text="N Align View to Active Face Normal" )
+        layout.operator(
+            "uv.qmtools_quick_cubemap",
+            text="Q Quick Cubeprojection Unwrap at 1.0" )
+        layout.operator(
+            "uv.qmtools_quick_cubemap_half",
+            text="W Quick Cubeprojection Unwrap at 0.5" )
+        layout.operator(
+            "uv.qmtools_quick_cubemap_modal",
+            text="R Quick Cubemap Modal" )
+        layout.operator(
+            "mesh.qmtools_minor_grid_snap",
+            text="S Snap to Minor Grid" )
+        layout.operator(
+            "mesh.qmtools_grid_snap_axis",
+            text="G Snap to Grid Along Axis" )
+        layout.operator(
+            "mesh.qmtools_grid_snap_axis_minor",
+            text="M Snap to Minor Grid Along Axis" )
+        layout.operator(
+            "mesh.qmtools_pick_image",
+            text="P Pick and Store Image" )
+        layout.operator(
+            "mesh.qmtools_assign_stored_image",
+            text="T Assign Stored Image" )
+        layout.operator(
+            "mesh.qmtools_quick_similar_image",
+            text="F Select Faces With Same Image" )    
+        layout.operator(
+            "mesh.qmtools_linked_similar_image",
+            text="F Select Linked Faces With Similar Image" )    
+        layout.operator(
+            "mesh.qmtools_toggle_backfaces",
+            text="B Toggle Show Backfaces" )
+        layout.operator(
+            "mesh.qmtools_toggle_edge_length",
+            text="L Toggle Show length Of Edges" )
 
 # ================================================== 
 # Operators
 # ================================================== 
 
-class YToolsAlignX(bpy.types.Operator):
-    bl_idname = "mesh.ytools_align_x"
-    bl_label = "X Axis Align To Active"
+class AlignX(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_align_x"
+    bl_label = "Align To Active On X Axis"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         align_to_active(self, context, X_AXIS_INDEX)
         return {'FINISHED'}
 
-class YToolsAlignY(bpy.types.Operator):
-    bl_idname = "mesh.ytools_align_y"
-    bl_label = "Y Axis Align To Active"
+class AlignY(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_align_y"
+    bl_label = "Align To Active On Y Axis"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         align_to_active(self, context, Y_AXIS_INDEX)
         return {'FINISHED'}
 
-class YToolsAlignZ(bpy.types.Operator):
-    bl_idname = "mesh.ytools_align_z"
-    bl_label = "Z Axis Align To Active"
+class AlignZ(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_align_z"
+    bl_label = "Align To Active On Z Axis"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         align_to_active(self, context, Z_AXIS_INDEX)
         return {'FINISHED'}
 
-class YToolsAlignH(bpy.types.Operator):
-    bl_idname = "mesh.ytools_align_horizontal"
-    bl_label = "Align Both X and Z Axis To Active"
+class AlignH(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_align_horizontal"
+    bl_label = "Align To Active On Both Horizontal Axes"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -120,9 +164,9 @@ class YToolsAlignH(bpy.types.Operator):
         align_to_active(self, context, Y_AXIS_INDEX)
         return {'FINISHED'}
 
-class YToolsAlignViewToFace(bpy.types.Operator):
-    bl_idname = "view3d.align_view_to_active_face_normal"
-    bl_label = "Face Normal Aligned 3D View"
+class AlignViewToFace(bpy.types.Operator):
+    bl_idname = "view3d.qmtools_align_view_to_normal"
+    bl_label = "Align 3d View to Active Face Normal"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -130,27 +174,27 @@ class YToolsAlignViewToFace(bpy.types.Operator):
         align_view_to_face(self, context)
         return {'FINISHED'}
 
-class YToolsQuickCubeMap(bpy.types.Operator):
-    bl_idname = "uv.quick_cubemap"
-    bl_label = "Unwrap Cubeproject" 
+class QuickCubeMap(bpy.types.Operator):
+    bl_idname = "uv.qmtools_quick_cubemap"
+    bl_label = "Quick Cubeprojection Unwrap at 1.0" 
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         bpy.ops.uv.cube_project(cube_size = 1.0)
         return {'FINISHED'}
 
-class YToolsQuickCubeMapHalf(bpy.types.Operator):
-    bl_idname = "uv.quick_cubemap_half"
-    bl_label = "Half Scale Cubeproject"
+class QuickCubeMapHalf(bpy.types.Operator):
+    bl_idname = "uv.qmtools_quick_cubemap_half"
+    bl_label = "Quick Cubeprojection Unwrap At Half Scale"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         bpy.ops.uv.cube_project(cube_size = 0.5)
         return {'FINISHED'}
 
-class YToolsQuickSimilarImage(bpy.types.Operator):
-    bl_idname = "mesh.quick_similar_image"
-    bl_label = "Quick Select Same Image"
+class QuickSimilarImage(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_quick_similar_image"
+    bl_label = "Quick Select Faces With Same Image"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -158,17 +202,17 @@ class YToolsQuickSimilarImage(bpy.types.Operator):
         select_faces_with_same_image(self, context, must_be_linked=False)
         return {'FINISHED'}
 
-class YToolsSelectLinkedFaceSameImage(bpy.types.Operator):
-    bl_idname = "mesh.linked_similar_image"
-    bl_label = "Selected Linked Faces With Same Image"
+class SelectLinkedFaceSameImage(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_linked_similar_image"
+    bl_label = "Select Linked Faces With Same Image"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         select_faces_with_same_image(self, context, must_be_linked=True)
         return {'FINISHED'}
 
-class YToolsSmartAlignEdges(bpy.types.Operator):
-    bl_idname = "mesh.smart_align_edges"
+class SmartAlignEdges(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_smart_align_edges"
     bl_label = "Edge Smart Align"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -176,31 +220,31 @@ class YToolsSmartAlignEdges(bpy.types.Operator):
         smart_align_selected_edges(self, context)
         return {'FINISHED'}
 
-class YToolsToggleBackfaces(bpy.types.Operator):
-    bl_idname = "mesh.toggle_backfaces"
-    bl_label = "Backfaces Toggle"
+class ToggleBackfaces(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_toggle_backfaces"
+    bl_label = "Toggle Show Backfaces"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         context.space_data.show_backface_culling ^= True
         return {'FINISHED'}
 
-class YToolsToggleEdgeLength(bpy.types.Operator):
-    bl_idname = "mesh.toggle_edge_length"
-    bl_label = "Length Of Edges Toggle"
+class ToggleEdgeLength(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_toggle_edge_length"
+    bl_label = "Toggle Show Length Of Edges"
     bl_options = {'REGISTER', 'UNDO'} 
 
     def execute(self, context):
         context.object.data.show_extra_edge_length ^= True
         return {'FINISHED'}
 
-class YToolsQuickCubeMapModal(bpy.types.Operator):
-    bl_idname = "uv.quick_cubemap_modal"
-    bl_label = "Cubeproject Modal"
-    bl_options = {'REGISTER', 'UNDO'}
+class QuickCubeMapModal(bpy.types.Operator):
+    bl_idname = "uv.qmtools_quick_cubemap_modal"
+    bl_label = "Quick Cubeprojection Modal"
+    bl_options = {'REGISTER', 'UNDO', 'BLOCKING'}
 
     def modal(self, context, event):
-        context.area.header_text_set("CUBE PROJECTION: Select Cubemap Scale [1: 0.25]  [2: 0.5]  [3: 0.75]  [4: 1.0]  [5: 1.25]  [6: 1.5]  [7: 1.75]  [8: 2.0]  [9: 2.25]  [0: 2.5]")
+        context.area.header_text_set(cubemap_modal_help)
         if event.unicode in cubemap_scales.keys():
             bpy.ops.uv.cube_project(cube_size = cubemap_scales[event.unicode])
             context.area.header_text_set()
@@ -216,13 +260,13 @@ class YToolsQuickCubeMapModal(bpy.types.Operator):
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
-class YToolsPickImageModal(bpy.types.Operator):
-    bl_idname = "mesh.pick_image"
+class PickImageModal(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_pick_image"
     bl_label = "Pick And Store Image"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER', 'UNDO', 'BLOCKING'}
 
     def modal(self, context, event):
-        context.area.header_text_set("PICK IMAGE: Select slot (0-9) to store image in.")
+        context.area.header_text_set("Pick Image: Select slot (0-9) to store image in.")
         if event.unicode in valid_texkeys:
             stored_images[event.unicode] = get_active_face_image_name(self, context)
             context.area.header_text_set()
@@ -239,13 +283,13 @@ class YToolsPickImageModal(bpy.types.Operator):
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
-class YToolsAssignImageModal(bpy.types.Operator):
-    bl_idname = "mesh.assign_stored_image"
-    bl_label = "Texture Assign From Stored Image"
-    bl_options = {'REGISTER', 'UNDO'}
+class AssignImageModal(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_assign_stored_image"
+    bl_label = "Assign Stored Image"
+    bl_options = {'REGISTER', 'UNDO', 'BLOCKING'}
 
     def modal(self, context, event):
-        context.area.header_text_set("ASSIGN IMAGE: Select slot (0-9) to assign image from")
+        context.area.header_text_set("Assign Image: Select slot (0-9) to assign image from")
         if event.unicode in valid_texkeys:
             if event.unicode in stored_images.keys():
                 assign_image_to_selected_faces_by_name(self, context, stored_images[event.unicode])
@@ -266,8 +310,8 @@ class YToolsAssignImageModal(bpy.types.Operator):
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
-class YToolsSnapToMinorGrid(bpy.types.Operator):
-    bl_idname = "mesh.minor_grid_snap"
+class SnapToMinorGrid(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_minor_grid_snap"
     bl_label = "Snap To Minor Grid"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -278,10 +322,10 @@ class YToolsSnapToMinorGrid(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class YToolsGridSnapModal(bpy.types.Operator):
-    bl_idname = "mesh.grid_snap_axis"
-    bl_label = "Grid Snap On Axis"
-    bl_options = {'REGISTER', 'UNDO'}
+class GridSnapModal(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_grid_snap_axis"
+    bl_label = "Snap to Major Grid On Axis"
+    bl_options = {'REGISTER', 'UNDO', 'BLOCKING'}
 
     def modal(self, context, event):
         context.area.header_text_set("Select X Y or Z to snap selectd vertices to the major grid on that axis.")
@@ -308,9 +352,9 @@ class YToolsGridSnapModal(bpy.types.Operator):
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
-class YToolsGridSnapMinorModal(bpy.types.Operator):
-    bl_idname = "mesh.grid_snap_axis_minor"
-    bl_label = "Minor Grid Snap On Axis"
+class GridSnapMinorModal(bpy.types.Operator):
+    bl_idname = "mesh.qmtools_grid_snap_axis_minor"
+    bl_label = "Snap to Minor Grid On Axis"
     bl_options = {'REGISTER', 'UNDO'}
 
     def modal(self, context, event):
@@ -350,16 +394,16 @@ def register():
     kc = bpy.context.window_manager.keyconfigs.addon
     km = kc.keymaps.new(name="Mesh")
 
-    kmi = km.keymap_items.new('wm.call_menu', 'Y', 'PRESS')
-    kmi.properties.name = YToolsMenu.bl_idname
+    kmi = km.keymap_items.new('wm.call_menu', 'Q', 'PRESS')
+    kmi.properties.name = QMToolsMenu.bl_idname
 
-    km.keymap_items.new(YToolsAlignZ.bl_idname, 'Z', 'PRESS', ctrl=True, shift=True)
-    km.keymap_items.new(YToolsAlignX.bl_idname, 'X', 'PRESS', ctrl=True, shift=True)
-    km.keymap_items.new(YToolsAlignY.bl_idname, 'C', 'PRESS', ctrl=True, shift=True)
-    km.keymap_items.new(YToolsQuickCubeMap.bl_idname, 'Q', 'PRESS', ctrl=True, shift=True)
-    km.keymap_items.new(YToolsQuickCubeMapHalf.bl_idname, 'W', 'PRESS', ctrl=True, shift=True)
-    km.keymap_items.new(YToolsQuickSimilarImage.bl_idname, 'A', 'PRESS', ctrl=True, shift=True)
-    km.keymap_items.new(YToolsSelectLinkedFaceSameImage.bl_idname, 'F', 'PRESS', ctrl=True, shift=True)
+    # km.keymap_items.new(YToolsAlignZ.bl_idname, 'Z', 'PRESS', ctrl=True, shift=True)
+    # km.keymap_items.new(YToolsAlignX.bl_idname, 'X', 'PRESS', ctrl=True, shift=True)
+    # km.keymap_items.new(YToolsAlignY.bl_idname, 'C', 'PRESS', ctrl=True, shift=True)
+    # km.keymap_items.new(YToolsQuickCubeMap.bl_idname, 'Q', 'PRESS', ctrl=True, shift=True)
+    # km.keymap_items.new(YToolsQuickCubeMapHalf.bl_idname, 'W', 'PRESS', ctrl=True, shift=True)
+    # km.keymap_items.new(YToolsQuickSimilarImage.bl_idname, 'A', 'PRESS', ctrl=True, shift=True)
+    # km.keymap_items.new(YToolsSelectLinkedFaceSameImage.bl_idname, 'F', 'PRESS', ctrl=True, shift=True)
 
     addon_keymaps.append(km)
 
@@ -464,7 +508,6 @@ def select_faces_with_same_image(operator, context, must_be_linked):
         return
 
     elem = bm.select_history[-1] if bm.select_history else None
-
     active_face_index = elem.index if isinstance(elem, bmesh.types.BMFace) else face_list[0].index
     active_image = bm.faces[active_face_index][tex_lay].image
 
