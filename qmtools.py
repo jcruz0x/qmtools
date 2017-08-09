@@ -38,13 +38,11 @@ cubemap_scales = {
     '8': 2.0, 
     '9': 2.25, 
     '0': 2.5,
-    'u': 1.0,
-    'i': 0.5,
 }
 
-cubemap_modal_help = "Select Cubeprojection Scale: "
-for k in cubemap_scales.keys():
-    cubemap_modal_help += " {} -> {},  ".format(k, cubemap_scales[k]) 
+cubemap_modal_help = "Select Cubeprojection Scale:  "
+for k in [1,2,3,4,5,6,7,8,9,0]:
+    cubemap_modal_help += "({}) = {},  ".format(k, cubemap_scales[str(k)]) 
 
 # ================================================== 
 # globals
@@ -112,7 +110,7 @@ class QMToolsMenu(bpy.types.Menu):
             text="T Assign Stored Image" )
         layout.operator(
             "mesh.qmtools_quick_similar_image",
-            text="F Select Faces With Same Image" )    
+            text="A Select Faces With Same Image" )    
         layout.operator(
             "mesh.qmtools_linked_similar_image",
             text="F Select Linked Faces With Similar Image" )    
