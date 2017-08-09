@@ -77,7 +77,7 @@ class YToolsMenu(bpy.types.Menu):
         layout.operator("mesh.linked_similar_image")    
         layout.operator("mesh.toggle_backfaces")
         layout.operator("mesh.toggle_edge_length")
-        layout.operator("mesh.split", text="Rip Faces")
+        layout.operator("mesh.split")   
 
 # ================================================== 
 # Operators
