@@ -69,9 +69,12 @@ class YToolsMenu(bpy.types.Menu):
         layout.operator("uv.quick_cubemap")
         layout.operator("uv.quick_cubemap_half")
         layout.operator("uv.quick_cubemap_modal")
+        layout.operator("mesh.minor_grid_snap")
+        layout.operator("mesh.grid_snap_axis")
+        layout.operator("mesh.grid_snap_axis_minor")
         layout.operator("mesh.pick_image")
         layout.operator("mesh.assign_stored_image")
-        layout.operator("mesh.linked_similar_image")
+        layout.operator("mesh.linked_similar_image")    
         layout.operator("mesh.toggle_backfaces")
         layout.operator("mesh.toggle_edge_length")
         layout.operator("mesh.split", text="Rip Faces")
@@ -150,9 +153,9 @@ class YToolsQuickSimilarImage(bpy.types.Operator):
     bl_label = "Quick Select Same Image"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execte(self, context):
-        #TODO: check if only face select mode is active (error if calling with type 'IMAGE' otherwise)
-        bpy.ops.mesh.select_similar(type='IMAGE', threshold=0.01)
+    def execute(self, context):
+        # bpy.ops.mesh.select_similar(type='IMAGE', threshold=0.01)
+        select_faces_with_same_image(self, context, must_be_linked=False)
         return {'FINISHED'}
 
 class YToolsSelectLinkedFaceSameImage(bpy.types.Operator):
@@ -161,7 +164,7 @@ class YToolsSelectLinkedFaceSameImage(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        select_linked_with_same_image(self, context)
+        select_faces_with_same_image(self, context, must_be_linked=True)
         return {'FINISHED'}
 
 class YToolsSmartAlignEdges(bpy.types.Operator):
@@ -263,6 +266,78 @@ class YToolsAssignImageModal(bpy.types.Operator):
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
+class YToolsSnapToMinorGrid(bpy.types.Operator):
+    bl_idname = "mesh.minor_grid_snap"
+    bl_label = "Snap To Minor Grid"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        align_to_grid_on_axis(self, context, X_AXIS_INDEX, on_minor=True)
+        align_to_grid_on_axis(self, context, Y_AXIS_INDEX, on_minor=True)
+        align_to_grid_on_axis(self, context, Z_AXIS_INDEX, on_minor=True)
+        return {'FINISHED'}
+
+
+class YToolsGridSnapModal(bpy.types.Operator):
+    bl_idname = "mesh.grid_snap_axis"
+    bl_label = "Grid Snap On Axis"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def modal(self, context, event):
+        context.area.header_text_set("Select X Y or Z to snap selectd vertices to the major grid on that axis.")
+        if event.type == 'X':
+            align_to_grid_on_axis(self, context, X_AXIS_INDEX, on_minor=False)
+            context.area.header_text_set()
+            return {'FINISHED'}
+        if event.type == 'Y':
+            align_to_grid_on_axis(self, context, Y_AXIS_INDEX, on_minor=False)
+            context.area.header_text_set()
+            return {'FINISHED'}
+        if event.type == 'Z':
+            align_to_grid_on_axis(self, context, Z_AXIS_INDEX, on_minor=False)
+            context.area.header_text_set()
+            return {'FINISHED'}
+
+        if event.type == 'ESC':
+            context.area.header_text_set()
+            return {'CANCELLED'}
+
+        return {'RUNNING_MODAL'}
+
+    def invoke(self, context, event):
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+class YToolsGridSnapMinorModal(bpy.types.Operator):
+    bl_idname = "mesh.grid_snap_axis_minor"
+    bl_label = "Minor Grid Snap On Axis"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def modal(self, context, event):
+        context.area.header_text_set("Select X Y or Z to snap selectd vertices to the minor grid on that axis.")
+        if event.type == 'X':
+            align_to_grid_on_axis(self, context, X_AXIS_INDEX, on_minor=True)
+            context.area.header_text_set()
+            return {'FINISHED'}
+        if event.type == 'Y':
+            align_to_grid_on_axis(self, context, Y_AXIS_INDEX, on_minor=True)
+            context.area.header_text_set()
+            return {'FINISHED'}
+        if event.type == 'Z':
+            align_to_grid_on_axis(self, context, Z_AXIS_INDEX, on_minor=True)
+            context.area.header_text_set()
+            return {'FINISHED'}
+
+        if event.type == 'ESC':
+            context.area.header_text_set()
+            return {'CANCELLED'}
+
+        return {'RUNNING_MODAL'}
+
+    def invoke(self, context, event):
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
 # ================================================== 
 # Registration
 # ================================================== 
@@ -302,6 +377,26 @@ if __name__ == "__main__":
 # ================================================== 
 # Functions
 # ==================================================
+
+def align_to_grid_on_axis(operator, context, axis_index, on_minor):
+    mode = context.active_object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    minorsubs = bpy.context.space_data.grid_subdivisions
+    scale = bpy.context.space_data.grid_scale
+    multiplier = (minorsubs if on_minor else 1) / scale
+
+    verts = [v for v in context.active_object.data.vertices if v.select]
+
+    # if len(verts) == 0:
+    #     operator.report({'ERROR'}, 'No vertices selected')
+
+    for vert in verts:
+        coord = vert.co[axis_index] * multiplier
+        coord = round(coord)
+        vert.co[axis_index] = coord / multiplier
+
+    bpy.ops.object.mode_set(mode=mode)
 
 def smart_align_selected_edges(operator, context):
     mode = context.active_object.mode
@@ -348,10 +443,9 @@ def get_edge_midpoint(vertex1, vertex2):
     z = (vertex1.co.z + vertex2.co.z) / 2
 
     return mathutils.Vector((x, y, z))
-    
 
-def select_linked_with_same_image(operator, context):
 
+def select_faces_with_same_image(operator, context, must_be_linked):
     mode = context.active_object.mode
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -364,40 +458,49 @@ def select_linked_with_same_image(operator, context):
     face_list = [f for f in bm.faces if f.select]
 
     if len(face_list) == 0:
-        # operator.report({'ERROR'}, 'No faces selected.')
+        operator.report({'ERROR'}, 'No faces selected.')
         bm.free()
         bpy.ops.object.mode_set(mode=mode)
         return
 
-    if bm.select_history:
-        elem = bm.select_history[-1]
-        active_face_index = elem.index if isinstance(elem, bmesh.types.BMFace) else face_list[0].index
-        active_image_name = bm.faces[active_face_index][tex_lay].image.name
-    else:
-        bpy.ops.object.mode_set(mode=mode)
-        bm.free()
-        return
+    elem = bm.select_history[-1] if bm.select_history else None
+
+    active_face_index = elem.index if isinstance(elem, bmesh.types.BMFace) else face_list[0].index
+    active_image = bm.faces[active_face_index][tex_lay].image
 
     final_selection = set()
-    while face_list:
-        new_faces = []
-        for face in face_list:
-            if face.index in final_selection:
-                continue
-            if face[tex_lay].image.name != active_image_name:
-                continue
-            final_selection.add(face.index) 
-            for edge in face.edges:
-               linked = edge.link_faces
-               for face in linked:
-                   new_faces.append(face)
-        face_list = new_faces if len(new_faces) > 0 else None 
+    if (must_be_linked):
+        while face_list:
+            new_faces = []
+            for face in face_list:
+                if face.index in final_selection:
+                    continue
+                if same_image(face[tex_lay].image, active_image):
+                    final_selection.add(face.index) 
+                    for edge in face.edges:
+                        linked = edge.link_faces
+                        for face in linked:
+                            new_faces.append(face)
+            face_list = new_faces if len(new_faces) > 0 else None
+    else:
+        for face in bm.faces:
+            if same_image(face[tex_lay].image, active_image):
+                final_selection.add(face.index)
 
     for face_index in final_selection:
         context.active_object.data.polygons[face_index].select = True
 
     bpy.ops.object.mode_set(mode=mode)
     bm.free()
+
+def same_image(image1, image2):
+    if image1 == None and image2 == None:
+        return True 
+    if image1 == None or image2 == None:
+        return False
+    if image1.name == image2.name:
+        return True
+    return False
 
 def get_active_face_image_name(operator, context):
     mode = context.active_object.mode
