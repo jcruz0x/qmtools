@@ -13,8 +13,12 @@ import mathutils
 
 bl_info = {
     "name": "Quick Map Tools",
+    "description": "Additional tools for geometry alignment and texturing to speed up the task of building game levels",
     "category": "Mesh",
-    "author": "John Cruz"
+    "author": "John Cruz",
+    "version": (1, 0),
+    "blender": (2, 78, 0),
+    "support": "TESTING",
 }
 
 # ================================================== 
@@ -72,9 +76,6 @@ class QMToolsMenu(bpy.types.Menu):
         layout.operator(
             "mesh.qmtools_align_y",
             text="Y Align to Active on Y Axis" )
-        layout.operator(
-            "mesh.qmtools_align_y",
-            text="C Align to Active on Y Axis" )
         layout.operator(
             "mesh.qmtools_smart_align_edges",
             text="E Smart Align Edges" )
