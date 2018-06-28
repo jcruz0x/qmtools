@@ -114,7 +114,7 @@ class QMToolsMenu(bpy.types.Menu):
             text="A Select Faces With Same Image" )    
         layout.operator(
             "mesh.qmtools_linked_similar_image",
-            text="F Select Linked Faces With Similar Image" )    
+            text="F Select Linked Faces With Same Image" )    
         layout.operator(
             "mesh.qmtools_toggle_backfaces",
             text="B Toggle Show Backfaces" )
