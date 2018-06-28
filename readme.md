@@ -16,6 +16,7 @@ axis but with just a quick couple of hotkey instead of some unintuitive multi-st
 that slows down work. Others just provide fast shortcuts to use built in Blender features
 with particular settings.
 
+This software is licensed under the GNU General Public License v3.0.
 
 ## Features
 
